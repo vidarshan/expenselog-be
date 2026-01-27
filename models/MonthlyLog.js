@@ -11,22 +11,10 @@ const monthlyLogSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-
     month: {
       type: Number,
       required: true,
     },
-
-    income: {
-      type: Number,
-      default: 0,
-    },
-
-    expenses: {
-      type: Number,
-      default: 0,
-    },
-
     isClosed: {
       type: Boolean,
       default: false,

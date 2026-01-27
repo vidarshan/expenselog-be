@@ -52,7 +52,6 @@ exports.login = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  console.log(req);
   try {
     const { username, salary } = req.body;
 

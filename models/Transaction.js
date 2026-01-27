@@ -35,7 +35,19 @@ const transactionSchema = new mongoose.Schema(
       required: true,
     },
     source: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: {
+        type: String,
+        enum: ["fixed", "variable"],
+        required: function () {
+          return this.type === "income";
+        },
+      },
+      refId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: function () {
+          return this.type === "income";
+        },
+      },
     },
     date: {
       type: Date,

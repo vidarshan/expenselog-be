@@ -26,6 +26,8 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1/auth", require("./routes/auth.routes"));
 app.use("/api/v1/categories", require("./routes/category.routes"));
+app.use("/api/v1/logs", require("./routes/log.routes"));
+app.use("/api/v1/transactions", require("./routes/transaction.routes"));
 
 app.listen(PORT, () => {
   console.log(
