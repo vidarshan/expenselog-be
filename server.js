@@ -24,10 +24,10 @@ app.get("/", (req, res) => {
   res.send("Server is running 🚀");
 });
 
-app.use("/api/v1/auth", require("./routes/auth.routes"));
-app.use("/api/v1/categories", require("./routes/category.routes"));
-app.use("/api/v1/logs", require("./routes/log.routes"));
-app.use("/api/v1/transactions", require("./routes/transaction.routes"));
+app.use("/api/auth", require("./routes/auth.routes"));
+app.use("/api/categories", require("./routes/category.routes"));
+app.use("/api/logs", require("./routes/log.routes"));
+app.use("/api/transactions", require("./routes/transaction.routes"));
 
 app.listen(PORT, () => {
   console.log(

@@ -52,3 +52,55 @@ exports.createTransaction = async (req, res) => {
     res.status(500).json({ message: "Operation failed" });
   }
 };
+
+exports.getTransactionsByMonth = async (req, res) => {
+  try {
+    const year = parseInt(req.query.year);
+    const month = parseInt(req.query.month);
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const monthlyLog = await MonthlyLog.findOne({
+      userId: req.userId,
+      year,
+      month,
+    });
+
+    if (!monthlyLog) {
+      return res.json({
+        data: [],
+        pagination: { page, limit, total: 0, totalPages: 0 },
+      });
+    }
+
+    const [transactions, total] = await Promise.all([
+      Transaction.find({
+        userId: req.userId,
+        logId: monthlyLog._id,
+      })
+        .sort({ date: -1 })
+        .skip(skip)
+        .limit(limit),
+
+      Transaction.countDocuments({
+        userId: req.userId,
+        logId: monthlyLog._id,
+      }),
+    ]);
+
+    res.json({
+      data: transactions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
