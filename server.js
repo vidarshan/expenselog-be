@@ -1,4 +1,3 @@
-import dotenv from "dotenv/config";
 import mongoose from "mongoose";
 import express from "express";
 import colors from "colors";
