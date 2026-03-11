@@ -1,11 +1,10 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
-module.exports = (req, res, next) => {
+const auth = async (req, res, next) => {
   const header = req.headers.authorization;
-  console.log(header);
 
   if (!header || !header.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Unauthorized" });
+    return res.status(401).json({ message: "Incorrect credentials" });
   }
 
   const token = header.split(" ")[1];
@@ -19,3 +18,5 @@ module.exports = (req, res, next) => {
     res.status(401).json({ message: "Invalid token" });
   }
 };
+
+export default auth;

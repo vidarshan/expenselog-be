@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const categorySchema = new mongoose.Schema(
   {
     userId: {
@@ -9,11 +9,18 @@ const categorySchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      unique: true,
+    },
+    color: {
+      type: String,
+      default: "blue",
     },
     isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
+categorySchema.index(
+  { userId: 1, name: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } },
+);
 
-module.exports = mongoose.model("Category", categorySchema);
+export default mongoose.model("Category", categorySchema);

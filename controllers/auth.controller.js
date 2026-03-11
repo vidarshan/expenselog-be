@@ -1,8 +1,21 @@
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+import Category from "../models/Category.js";
 
-exports.register = async (req, res) => {
+const DEFAULT_CATEGORIES = [
+  { name: "Food", type: "expense" },
+  { name: "Transport", type: "expense" },
+  { name: "Housing", type: "expense" },
+  { name: "Utilities", type: "expense" },
+  { name: "Shopping", type: "expense" },
+  { name: "Entertainment", type: "expense" },
+  { name: "Health", type: "expense" },
+  { name: "Salary", type: "income" },
+  { name: "Freelance", type: "income" },
+];
+
+export const register = async (req, res) => {
   try {
     const { email, name, password, salary } = req.body;
 
@@ -13,12 +26,18 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await User.create({
+    const newUser = await User.create({
       email,
       username: name,
       password: hashedPassword,
       salary,
     });
+    await Category.insertMany(
+      DEFAULT_CATEGORIES.map((c) => ({
+        ...c,
+        userId: newUser._id,
+      })),
+    );
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
@@ -27,7 +46,7 @@ exports.register = async (req, res) => {
   }
 };
 
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -47,12 +66,12 @@ exports.login = async (req, res) => {
 
     res.json({ token });
   } catch (err) {
+    console.log(err);
     res.status(500).json({ message: "Login failed" });
   }
 };
 
-exports.update = async (req, res) => {
-  console.log(req);
+export const update = async (req, res) => {
   try {
     const { username, salary } = req.body;
 
@@ -85,20 +104,26 @@ exports.update = async (req, res) => {
 
       updates.salary = salary;
     }
+
     const updatedUser = await User.findByIdAndUpdate(
       req.userId,
-      { $set: updates }, //set values to given fields
-      { new: true, runValidators: true }, //validate data
+      { $set: updates },
+      { new: true, runValidators: true },
     ).select("-password");
 
     res.json(updatedUser);
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: "Login failed" });
+    res.status(500).json({ message: "Update failed" });
   }
 };
 
-exports.me = async (req, res) => {
-  const user = await User.findById(req.userId).select("-password");
-  res.json(user);
+export const me = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select("-password");
+    res.json(user);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Fetch user failed" });
+  }
 };

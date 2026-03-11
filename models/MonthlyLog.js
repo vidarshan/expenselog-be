@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const monthlyLogSchema = new mongoose.Schema(
   {
@@ -11,25 +11,20 @@ const monthlyLogSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-
     month: {
       type: Number,
       required: true,
     },
-
-    income: {
-      type: Number,
-      default: 0,
-    },
-
-    expenses: {
-      type: Number,
-      default: 0,
-    },
-
     isClosed: {
       type: Boolean,
       default: false,
+    },
+    aiInsights: {
+      insights: [String],
+      suggestions: [String],
+      risk_flags: [String],
+      positive_note: String,
+      updatedAt: Date,
     },
   },
   { timestamps: true },
@@ -37,4 +32,4 @@ const monthlyLogSchema = new mongoose.Schema(
 
 monthlyLogSchema.index({ userId: 1, year: 1, month: 1 }, { unique: true });
 
-module.exports = mongoose.model("MonthlyLog", monthlyLogSchema);
+export default mongoose.model("MonthlyLog", monthlyLogSchema);

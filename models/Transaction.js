@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const transactionSchema = new mongoose.Schema(
   {
@@ -28,21 +28,37 @@ const transactionSchema = new mongoose.Schema(
     categoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
-      required: false,
+      required: function () {
+        return this.type === "expense";
+      },
+    },
+    accountId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Account",
+      required: true,
+    },
+    categoryColor: {
+      type: String,
+      default: "blue",
     },
     categoryName: {
       type: String,
-      required: true,
+      required: function () {
+        return this.type === "expense";
+      },
+      default: "",
     },
-    source: {
-      type: mongoose.Schema.Types.ObjectId,
+    date: { type: Date, required: true },
+    time: {
+      type: String,
+      default: "",
     },
-    date: {
-      type: Date,
-      required: true,
-    },
+    isDeleted: { type: Boolean, default: false, index: true },
   },
   { timestamps: true },
 );
+transactionSchema.index({ userId: 1, logId: 1, date: -1 });
+transactionSchema.index({ userId: 1, logId: 1, type: 1 });
+transactionSchema.index({ userId: 1, logId: 1, categoryId: 1 });
 
-module.exports = mongoose.model("Transaction", transactionSchema);
+export default mongoose.model("Transaction", transactionSchema);
