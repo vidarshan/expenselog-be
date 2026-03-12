@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import Insight from "../models/Insight.js";
+import Transaction from "../models/Transaction.js";
 import { buildMonthlySummary } from "../utils/buildMonthlySummary.js";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });

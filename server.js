@@ -1,9 +1,10 @@
+import dotenv from "dotenv";
 import mongoose from "mongoose";
 import express from "express";
 import colors from "colors";
 import morgan from "morgan";
 import cors from "cors";
-
+dotenv.config();
 import authRoutes from "./routes/auth.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 import logRoutes from "./routes/log.routes.js";
