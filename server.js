@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import express from "express";
 import colors from "colors";
 import morgan from "morgan";
+import cors from "cors";
 
 import authRoutes from "./routes/auth.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
@@ -15,6 +16,16 @@ import analyticsRoutes from "./routes/analytics.routes.js";
 
 const app = express();
 const PORT = process.env.PORT;
+
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? process.env.CLIENT_URL
+        : "http://localhost:5173",
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 if (process.env.NODE_ENV === "development") {
