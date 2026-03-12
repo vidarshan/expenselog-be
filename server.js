@@ -1,10 +1,10 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import mongoose from "mongoose";
 import express from "express";
 import colors from "colors";
 import morgan from "morgan";
 import cors from "cors";
-dotenv.config();
+
 import authRoutes from "./routes/auth.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 import logRoutes from "./routes/log.routes.js";
@@ -14,7 +14,6 @@ import insightsRoutes from "./routes/insights.routes.js";
 import budgetRoutes from "./routes/budget.routes.js";
 import accountRoutes from "./routes/accounts.routes.js";
 import analyticsRoutes from "./routes/analytics.routes.js";
-
 const app = express();
 const PORT = process.env.PORT;
 

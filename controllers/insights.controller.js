@@ -2,8 +2,13 @@ import OpenAI from "openai";
 import Insight from "../models/Insight.js";
 import Transaction from "../models/Transaction.js";
 import { buildMonthlySummary } from "../utils/buildMonthlySummary.js";
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY is missing in environment variables");
+}
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 const aiProfile = {
   tone: "tough-love", // "friendly" | "professional"
@@ -18,14 +23,16 @@ export const getInsights = async (req, res) => {
     const userId = req.user?.id || req.user?._id || req.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
     if (!month) return res.status(400).json({ message: "Month is required" });
-
+    const [year, monthNum] = month.split("-").map(Number);
+    const startOfMonth = new Date(year, monthNum - 1, 1);
+    const endOfMonth = new Date(year, monthNum, 0, 23, 59, 59, 999);
     const existing = await Insight.findOne({ userId, month });
     if (existing) return res.json(existing.insights);
 
     const summary = await buildMonthlySummary(userId, month);
 
     const txCount = await Transaction.countDocuments({
-      userId: req.user.id,
+      userId: req.userId,
       date: {
         $gte: startOfMonth,
         $lte: endOfMonth,
