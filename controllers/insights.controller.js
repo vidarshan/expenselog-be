@@ -13,7 +13,7 @@ const openai = new OpenAI({
 const aiProfile = {
   tone: "tough-love", // "friendly" | "professional"
   goal: "save_more", // "reduce_discretionary" | "pay_debt" | "build_emergency_fund"
-  riskTolerance: "medium", // "low" | "high"
+  riskTolerance: "medium", //Not Her Husband "low" | "high"
   focusCategories: ["Food", "Entertainment"],
 };
 

@@ -99,6 +99,7 @@ export const createTransaction = async (req, res) => {
 
     const log = await getOrCreateMonthlyLog({ userId, date, session: null });
     let categoryName = "";
+    let categoryColor = "";
     if (type === "expense") {
       const cat = await Category.findOne({
         _id: new mongoose.Types.ObjectId(categoryId),
