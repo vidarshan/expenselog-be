@@ -74,7 +74,12 @@ export const createMonthlyLog = async (req, res) => {
 
 async function summarizeLog(logId) {
   const [stats] = await Transaction.aggregate([
-    { $match: { logId: new mongoose.Types.ObjectId(logId) } },
+    {
+      $match: {
+        logId: new mongoose.Types.ObjectId(logId),
+        isDeleted: { $ne: true },
+      },
+    },
     {
       $group: {
         _id: null,

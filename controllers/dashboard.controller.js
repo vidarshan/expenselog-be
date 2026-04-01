@@ -31,7 +31,7 @@ async function ensureMonthlyLog(userId, year, month) {
 
 async function aggregateSummary(logId) {
   const rows = await Transaction.aggregate([
-    { $match: { logId } },
+    { $match: { logId, isDeleted: { $ne: true } } },
     {
       $group: {
         _id: "$type",
@@ -142,7 +142,7 @@ async function buildBudgetProgress(userId, year, month, logId) {
 }
 
 async function aggregateRecentTransactions(logId) {
-  return Transaction.find({ logId })
+  return Transaction.find({ logId, isDeleted: { $ne: true } })
     .sort({ date: -1, createdAt: -1 })
     .limit(6)
     .select("name amount type date categoryName categoryColor")

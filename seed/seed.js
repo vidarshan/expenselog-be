@@ -14,6 +14,18 @@ dotenv.config();
 
 const MONGO_URI = process.env.MONGO_URI;
 
+function toPositiveInt(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const SEED_USER_COUNT = toPositiveInt(process.env.SEED_USER_COUNT, 24);
+const SEED_MONTH_RANGE = toPositiveInt(process.env.SEED_MONTH_RANGE, 24);
+const SEED_VOLUME_MULTIPLIER = toPositiveInt(
+  process.env.SEED_VOLUME_MULTIPLIER,
+  6,
+);
+
 const EXPENSE_CATEGORIES = [
   { name: "Food", color: "orange" },
   { name: "Transport", color: "blue" },
@@ -65,6 +77,19 @@ const LAST_NAMES = [
   "Taylor",
   "Anderson",
   "Thomas",
+];
+
+const FIXED_DEMO_USERS = [
+  { firstName: "Noah", lastName: "Jones" },
+  { firstName: "Emma", lastName: "Smith" },
+  { firstName: "Liam", lastName: "Brown" },
+  { firstName: "Olivia", lastName: "Taylor" },
+  { firstName: "Ethan", lastName: "Wilson" },
+  { firstName: "Sophia", lastName: "Miller" },
+  { firstName: "Lucas", lastName: "Davis" },
+  { firstName: "Mia", lastName: "Moore" },
+  { firstName: "Daniel", lastName: "Anderson" },
+  { firstName: "Charlotte", lastName: "Thomas" },
 ];
 
 const ACCOUNT_NAME_BANK = [
@@ -225,6 +250,23 @@ function buildMonthRange(monthsBack = 12) {
   return months;
 }
 
+function buildWeightedMonthPool(months, profile) {
+  const pool = [];
+
+  months.forEach((monthObj, index) => {
+    const recencyBoost = Math.max(1, Math.ceil((index + 1) / 4));
+    const profileBoost =
+      profile === "student" ? 1 : profile === "working" ? 2 : 3;
+    const weight = recencyBoost + profileBoost;
+
+    for (let i = 0; i < weight; i++) {
+      pool.push(monthObj);
+    }
+  });
+
+  return pool;
+}
+
 function getUserProfile(index) {
   const profiles = [
     "student",
@@ -349,9 +391,14 @@ function buildAccounts(profile) {
 }
 
 function getTransactionCount(profile) {
-  if (profile === "student") return rand(60, 140);
-  if (profile === "working") return rand(100, 220);
-  return rand(180, 320);
+  const baseCount =
+    profile === "student"
+      ? rand(60, 140)
+      : profile === "working"
+        ? rand(100, 220)
+        : rand(180, 320);
+
+  return baseCount * SEED_VOLUME_MULTIPLIER;
 }
 
 function expenseRangeForCategory(profile, categoryName) {
@@ -434,52 +481,6 @@ function pickExpenseCategoryWeighted(categoryDocs, profile) {
   return pick(pool);
 }
 
-function buildInsightText(profile, monthName) {
-  if (profile === "student") {
-    return {
-      insights: [
-        `Food spending was active in ${monthName}, mostly from small frequent purchases.`,
-        `Education and transport remain important spending areas.`,
-      ],
-      suggestions: [
-        "Try a weekly food budget cap.",
-        "Track recurring subscriptions more closely.",
-      ],
-      risk_flags: ["Frequent small expenses may add up quickly."],
-      positive_note: "Income and spending pattern looks manageable overall.",
-    };
-  }
-
-  if (profile === "working") {
-    return {
-      insights: [
-        `Housing and food were the strongest recurring costs in ${monthName}.`,
-        `Income flow appears relatively stable this month.`,
-      ],
-      suggestions: [
-        "Consider setting tighter category budgets for shopping and food.",
-        "Review utility and phone bills for recurring savings.",
-      ],
-      risk_flags: ["Lifestyle expenses may grow if not monitored monthly."],
-      positive_note: "Cash flow remains healthy with decent category balance.",
-    };
-  }
-
-  return {
-    insights: [
-      `Shopping, travel, and dining drove a large share of discretionary spending in ${monthName}.`,
-      `Overall income appears strong enough to support the current spending pattern.`,
-    ],
-    suggestions: [
-      "Set explicit upper limits for discretionary categories.",
-      "Increase savings allocation from surplus income.",
-    ],
-    risk_flags: ["High discretionary spend may reduce long-term savings pace."],
-    positive_note:
-      "Strong income provides room to optimize savings and investment habits.",
-  };
-}
-
 async function recalcAccountBalancesForUser(userId) {
   const accounts = await Account.find({ userId, isDeleted: false });
   const transactions = await Transaction.find({ userId, isDeleted: false });
@@ -540,11 +541,16 @@ async function seed() {
   const passwordPlain = "Password123!";
   const hashedPassword = await bcrypt.hash(passwordPlain, 10);
 
-  const months = buildMonthRange(12);
+  const months = buildMonthRange(SEED_MONTH_RANGE);
 
-  for (let i = 0; i < 10; i++) {
-    const firstName = pick(FIRST_NAMES);
-    const lastName = pick(LAST_NAMES);
+  console.log(
+    `Seed config -> users: ${SEED_USER_COUNT}, months: ${SEED_MONTH_RANGE}, volume multiplier: ${SEED_VOLUME_MULTIPLIER}`,
+  );
+
+  for (let i = 0; i < SEED_USER_COUNT; i++) {
+    const fixedIdentity = FIXED_DEMO_USERS[i];
+    const firstName = fixedIdentity?.firstName || pick(FIRST_NAMES);
+    const lastName = fixedIdentity?.lastName || pick(LAST_NAMES);
     const username = `${firstName} ${lastName}`;
     const email = `${slugify(firstName)}.${slugify(lastName)}${i + 1}@demo.com`;
     const profile = getUserProfile(i);
@@ -575,31 +581,11 @@ async function seed() {
         year,
         month,
         isClosed: maybe(0.85),
-        aiInsights: {
-          ...buildInsightText(
-            profile,
-            `${year}-${String(month).padStart(2, "0")}`,
-          ),
-          updatedAt: new Date(),
-        },
       })),
     );
 
     const logMap = new Map(
       monthlyLogs.map((log) => [`${log.year}-${log.month}`, log]),
-    );
-
-    // optional separate insight documents
-    await Insight.insertMany(
-      months.map(({ year, month }) => ({
-        userId: user._id,
-        month: `${year}-${String(month).padStart(2, "0")}`,
-        insights: buildInsightText(
-          profile,
-          `${year}-${String(month).padStart(2, "0")}`,
-        ),
-        summaryHash: `${user._id}-${year}-${month}`,
-      })),
     );
 
     // accounts
@@ -666,10 +652,11 @@ async function seed() {
 
     // transactions
     const totalTransactions = getTransactionCount(profile);
+    const monthPool = buildWeightedMonthPool(months, profile);
     const txDocs = [];
 
     for (let t = 0; t < totalTransactions; t++) {
-      const monthObj = pick(months);
+      const monthObj = pick(monthPool);
       const date = randomDateInMonth(monthObj.year, monthObj.month);
       date.setHours(rand(7, 22), rand(0, 59), 0, 0);
 
@@ -755,7 +742,9 @@ async function seed() {
 
     await recalcAccountBalancesForUser(user._id);
 
-    console.log(`Seeded user ${i + 1}/10 -> ${email} (${profile})`);
+    console.log(
+      `Seeded user ${i + 1}/${SEED_USER_COUNT} -> ${email} (${profile}) with ${txDocs.length} transactions`,
+    );
   }
 
   console.log("\nSeed complete.");

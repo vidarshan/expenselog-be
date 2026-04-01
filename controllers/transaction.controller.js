@@ -14,6 +14,24 @@ function ymdToUTCNoon(value) {
 
   return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
 }
+
+function getYearMonthFromInput(value) {
+  if (!value) {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() + 1 };
+  }
+
+  const datePart = String(value).slice(0, 10);
+  const [y, m] = datePart.split("-").map(Number);
+
+  if (y && m) {
+    return { year: y, month: m };
+  }
+
+  const parsed = new Date(value);
+  return { year: parsed.getFullYear(), month: parsed.getMonth() + 1 };
+}
+
 function computeDelta(accountType, txType, amount) {
   const amt = Number(amount);
   if (!Number.isFinite(amt) || amt <= 0) throw new Error("Amount must be > 0");
@@ -33,9 +51,7 @@ function computeDelta(accountType, txType, amount) {
 }
 
 async function getOrCreateMonthlyLog({ userId, date }) {
-  const d = date ? new Date(date) : new Date();
-  const year = d.getFullYear();
-  const month = d.getMonth() + 1;
+  const { year, month } = getYearMonthFromInput(date);
 
   let log = await MonthlyLog.findOne({ userId, year, month });
   if (!log) {
@@ -202,12 +218,31 @@ export const updateTransaction = async (req, res) => {
     tx.amount = Number(newAmount);
 
     if (patch.name !== undefined) tx.name = patch.name;
+    if (patch.time !== undefined) tx.time = patch.time;
+
+    let nextCategoryName = "";
+    let nextCategoryColor = "";
 
     if (newType === "expense") {
-      if (patch.categoryId !== undefined) tx.categoryId = patch.categoryId;
+      const nextCategoryId = patch.categoryId ?? tx.categoryId;
+
+      const cat = await Category.findOne({
+        _id: new mongoose.Types.ObjectId(nextCategoryId),
+        userId,
+        isDeleted: false,
+      }).lean();
+
+      if (!cat) return res.status(404).json({ message: "Category not found" });
+
+      tx.categoryId = cat._id;
+      nextCategoryName = cat.name;
+      nextCategoryColor = cat.color;
     } else {
       tx.categoryId = undefined;
     }
+
+    tx.categoryName = nextCategoryName;
+    tx.categoryColor = nextCategoryColor;
 
     await tx.save();
 
@@ -269,7 +304,7 @@ export const getTransactionsByMonth = async (req, res) => {
         logId: monthlyLog._id,
         isDeleted: false,
       })
-        .sort({ date: -1 })
+        .sort({ date: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),

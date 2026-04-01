@@ -322,11 +322,6 @@ async function upsertMonthlyLog(year, month) {
         year,
         month,
         isClosed: false,
-        aiInsights: {
-          insights: [],
-          suggestions: [],
-          risk_flags: [],
-        },
       },
     },
     { new: true, upsert: true },
