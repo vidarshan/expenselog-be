@@ -19,7 +19,7 @@ const aiProfile = {
 
 export const getInsights = async (req, res) => {
   try {
-    const { month } = req.query;
+    const { month, forceRefresh } = req.query;
     const userId = req.user?.id || req.user?._id || req.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
     if (!month) return res.status(400).json({ message: "Month is required" });
@@ -27,12 +27,14 @@ export const getInsights = async (req, res) => {
     const startOfMonth = new Date(year, monthNum - 1, 1);
     const endOfMonth = new Date(year, monthNum, 0, 23, 59, 59, 999);
     const existing = await Insight.findOne({ userId, month });
-    if (existing) return res.json(existing.insights);
+    const forceRefreshBool = forceRefresh === "true";
+
+    if (existing && !forceRefreshBool) return res.json(existing.insights);
 
     const summary = await buildMonthlySummary(userId, month);
 
     const txCount = await Transaction.countDocuments({
-      userId: req.userId,
+      userId,
       date: {
         $gte: startOfMonth,
         $lte: endOfMonth,
@@ -237,7 +239,11 @@ ${JSON.stringify(summary, null, 2)}
       next_best_move: parsed.next_best_move || null,
     };
 
-    await Insight.create({ userId, month, insights: normalized });
+    await Insight.findOneAndUpdate(
+      { userId, month },
+      { insights: normalized },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
 
     return res.json(normalized);
   } catch (err) {

@@ -26,6 +26,54 @@ const SEED_VOLUME_MULTIPLIER = toPositiveInt(
   6,
 );
 
+const FIXED_DEMO_USER_ACCOUNTS = [
+  {
+    email: "charlotte.williams1@demo.com",
+    password: "$2b$10$Ox3DCT03/brhoY5XzHT07ebByU27gg5/.6b/sWP3M518Vi6iubEx.",
+  },
+  {
+    email: "sophia.johnson2@demo.com",
+    password: "$2b$10$Ox3DCT03/brhoY5XzHT07ebByU27gg5/.6b/sWP3M518Vi6iubEx.",
+  },
+  {
+    email: "emma.jones3@demo.com",
+    password: "$2b$10$Ox3DCT03/brhoY5XzHT07ebByU27gg5/.6b/sWP3M518Vi6iubEx.",
+  },
+  {
+    email: "sophia.wilson4@demo.com",
+    password: "$2b$10$Ox3DCT03/brhoY5XzHT07ebByU27gg5/.6b/sWP3M518Vi6iubEx.",
+  },
+  {
+    email: "liam.williams5@demo.com",
+    password: "$2b$10$Ox3DCT03/brhoY5XzHT07ebByU27gg5/.6b/sWP3M518Vi6iubEx.",
+  },
+  {
+    email: "jordan.anderson6@demo.com",
+    password: "$2b$10$Ox3DCT03/brhoY5XzHT07ebByU27gg5/.6b/sWP3M518Vi6iubEx.",
+  },
+  {
+    email: "alex.johnson7@demo.com",
+    password: "$2b$10$Ox3DCT03/brhoY5XzHT07ebByU27gg5/.6b/sWP3M518Vi6iubEx.",
+  },
+  {
+    email: "sophia.miller8@demo.com",
+    password: "$2b$10$Ox3DCT03/brhoY5XzHT07ebByU27gg5/.6b/sWP3M518Vi6iubEx.",
+  },
+  {
+    email: "taylor.thomas9@demo.com",
+    password: "$2b$10$Ox3DCT03/brhoY5XzHT07ebByU27gg5/.6b/sWP3M518Vi6iubEx.",
+  },
+  {
+    email: "chris.moore10@demo.com",
+    password: "$2b$10$Ox3DCT03/brhoY5XzHT07ebByU27gg5/.6b/sWP3M518Vi6iubEx.",
+  },
+];
+
+const EFFECTIVE_SEED_USER_COUNT = Math.max(
+  SEED_USER_COUNT,
+  FIXED_DEMO_USER_ACCOUNTS.length,
+);
+
 const EXPENSE_CATEGORIES = [
   { name: "Food", color: "orange" },
   { name: "Transport", color: "blue" },
@@ -213,6 +261,17 @@ function slugify(text) {
     .toLowerCase()
     .replace(/\s+/g, ".")
     .replace(/[^a-z0-9.]/g, "");
+}
+
+function usernameFromEmail(email) {
+  const localPart = email.split("@")[0] || "";
+  const cleaned = localPart.replace(/[0-9]+$/g, "");
+
+  return cleaned
+    .split(".")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function startOfMonth(year, month) {
@@ -544,21 +603,27 @@ async function seed() {
   const months = buildMonthRange(SEED_MONTH_RANGE);
 
   console.log(
-    `Seed config -> users: ${SEED_USER_COUNT}, months: ${SEED_MONTH_RANGE}, volume multiplier: ${SEED_VOLUME_MULTIPLIER}`,
+    `Seed config -> users: ${EFFECTIVE_SEED_USER_COUNT}, months: ${SEED_MONTH_RANGE}, volume multiplier: ${SEED_VOLUME_MULTIPLIER}`,
   );
 
-  for (let i = 0; i < SEED_USER_COUNT; i++) {
+  for (let i = 0; i < EFFECTIVE_SEED_USER_COUNT; i++) {
+    const fixedAccount = FIXED_DEMO_USER_ACCOUNTS[i];
     const fixedIdentity = FIXED_DEMO_USERS[i];
     const firstName = fixedIdentity?.firstName || pick(FIRST_NAMES);
     const lastName = fixedIdentity?.lastName || pick(LAST_NAMES);
-    const username = `${firstName} ${lastName}`;
-    const email = `${slugify(firstName)}.${slugify(lastName)}${i + 1}@demo.com`;
+    const generatedUsername = `${firstName} ${lastName}`;
+    const email =
+      fixedAccount?.email ||
+      `${slugify(firstName)}.${slugify(lastName)}${i + 1}@demo.com`;
+    const username = fixedAccount?.email
+      ? usernameFromEmail(fixedAccount.email)
+      : generatedUsername;
     const profile = getUserProfile(i);
 
     const user = await User.create({
       email,
       username,
-      password: hashedPassword,
+      password: fixedAccount?.password || hashedPassword,
       role: i === 0 ? "admin" : "user",
       salary: buildSalary(profile),
     });
@@ -743,12 +808,14 @@ async function seed() {
     await recalcAccountBalancesForUser(user._id);
 
     console.log(
-      `Seeded user ${i + 1}/${SEED_USER_COUNT} -> ${email} (${profile}) with ${txDocs.length} transactions`,
+      `Seeded user ${i + 1}/${EFFECTIVE_SEED_USER_COUNT} -> ${email} (${profile}) with ${txDocs.length} transactions`,
     );
   }
 
   console.log("\nSeed complete.");
-  console.log(`All users use password: ${passwordPlain}`);
+  console.log(
+    `Generated fallback users use password: ${passwordPlain} (${FIXED_DEMO_USER_ACCOUNTS.length} seeded accounts use the provided password values)`,
+  );
 
   await mongoose.disconnect();
   console.log("MongoDB disconnected");

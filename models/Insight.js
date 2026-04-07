@@ -17,4 +17,6 @@ const insightSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+insightSchema.index({ userId: 1, month: 1 }, { unique: true });
+
 export default mongoose.model("Insight", insightSchema);
